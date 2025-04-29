@@ -18,14 +18,14 @@ Tuberculosis continues to be one of the world’s deadliest infectious diseases,
 
 
 ## Required Packages
-mosaic: Stats analysis
-tidyverse: Data manipulation & visualization
-ggplot2: Data visualization
-tmap: Static and interactive maps
-dplyr: Data manipulation
-plotly: Interactive visualizations
-leaflet: Interactive maps
-sf: Simple features for R
+- mosaic: Stats analysis
+- tidyverse: Data manipulation & visualization
+- ggplot2: Data visualization
+- tmap: Static and interactive maps
+- dplyr: Data manipulation
+- plotly: Interactive visualizations
+- leaflet: Interactive maps
+- sf: Simple features for R
 
 ## References
 1.	Analyze data. (n.d.). Tableau. https://help.tableau.com/current/pro/desktop/en-us/analyze.htm
