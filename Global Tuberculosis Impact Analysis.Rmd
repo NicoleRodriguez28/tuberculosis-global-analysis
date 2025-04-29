@@ -1,0 +1,287 @@
+---
+title: | 
+ | The Global Face of Tuberculosis
+subtitle: |
+ | Assessing Tuberculosis Burdens and Trends Across Countries
+author: | 
+ | Nicole Rodriguez
+date: '04/29/25'
+output:
+  html_document:
+    code_folding: show
+    fig_caption: true
+    df_print: kable
+    theme: lumen
+    toc: true
+    toc_float:
+      collapsed: false
+  pdf_document:
+    toc: true
+---
+
+# Introduction
+
+> How does Tuberculosis shape global health?
+
+This analysis explores the worldwide burden of Tuberculosis (TB) through a country-by-country perspective, using data from the Tuberculosis Burden by Country dataset in [Tableau](https://public.tableau.com/app/learn/sample-data). By examining prevalence, mortality rates, and the incidence of various TB cases linked with HIV cases, reveals patterns on how TB affects populations across the globe. The goal is to gain deeper insight into regional disparities and identify any trends that emerge over time.
+
+The following visualizations were created for this analysis: 
+
+1. Interactive Bar plot 
+    - Reveals countries with the highest and lowest average of tuberculosis prevalence
+    
+2. Interactive Scatterplot
+    - Reveals the average incidence of TB cases in relation to HIV-positive individuals
+
+
+There are 4 additional visualizations I created with Tableau that helps visualize the data on a larger scale and in more depth. The visual narrative reveals a notable correlation between HIV-positive TB cases and mortality rates across regions. It also captures a significant trend: TB cases surged from the late 1990s to the early 2000s, followed by a marked decline beginning around 2005.
+
+# Data
+## Load Libraries and Packages
+```{r, message=FALSE, warning=FALSE}
+# Load Required Libraries
+if (!require("mosaic"))
+  install.packages("mosaic")
+if (!require("tidyverse"))
+  install.packages("tidyverse")
+if (!require("ggplot2"))
+  install.packages("ggplot2")
+if (!require("tmap"))
+  install.packages("tmap")
+if (!require("dplyr"))
+  install.packages("dplyr")
+if (!require("plotly"))
+  install.packages("plotly")
+if (!require("leaflet"))
+  install.packages("leaflet")
+if (!require("sf"))
+  install.packages("sf")
+
+library(mosaic) # Stats analysis
+library(tidyverse) # Data manipulation & visualization
+library(ggplot2) # Tidyverse data visualization package
+library(tmap)    # Static and interactive maps
+library(dplyr) # Data manipulation
+library(plotly) # Interactive plots
+library(leaflet) # Interactive maps
+library(sf) # Simple features for R
+```
+
+## Description of data
+This dataset offers a comprehensive snapshot of Tuberculosis (TB) across nations, highlighting key indicators such as prevalence, mortality rates, and incident cases. It serves as a valuable resource for examining the global distribution and health impact of TB at a country-level perspective. This data can be found in the [Tableau public data sets](https://public.tableau.com/app/learn/sample-data).
+
+> Topic: Health
+
+> Data set: Tuberculosis Burden by Country
+
+## Load and Clean Data
+```{r, message=FALSE, warning=FALSE}
+# Load Data into R
+tb_data <- read_csv("TB_Burden_Country.csv")
+
+# Clean data & select relevant variables
+clean_data <- tb_data %>%
+  select(`Country or territory name`,
+         Region, 
+         Year,
+         `Estimated prevalence of TB (all forms) per 100 000 population`, 
+        `Estimated mortality of TB cases (all forms, excluding HIV) per 100 000 population`, 
+        `Estimated incidence (all forms) per 100 000 population`, 
+        `Estimated HIV in incident TB (percent)`, 
+        `Estimated incidence of TB cases who are HIV-positive per 100 000 population`, 
+        `Case detection rate (all forms), percent`) %>%
+  # Remove NA data
+  drop_na()
+
+# Write into csv file
+write.csv(clean_data, file = "cleaned_tb_data.csv")
+```
+
+## Preview Data
+```{r, message=FALSE, warning=FALSE}
+# First 10 rows of clean dataset
+head(clean_data, 10)
+
+```
+
+## Variables
+```{r, message = FALSE, warning = FALSE}
+# Column names
+names(clean_data)
+
+```
+
+The variables included in this analysis are:
+
+1. Country or Territory
+  – The name of the nation or territory where the TB data was collected.
+
+2. Region
+  – The broader geographic region corresponding to each country or territory.
+
+3. Year
+  – The calendar year in which the data was recorded.
+
+4. Estimated TB Prevalence (per 100,000 population)
+  – The projected number of existing TB cases, across all forms, per 100,000 people.
+
+5. Estimated TB Mortality (excluding HIV) (per 100,000 population)
+  – The estimated number of TB-related deaths among individuals without HIV, per 100,000 people.
+
+6. Estimated TB Incidence (per 100,000 population)
+  – The estimated number of new TB cases (all forms) per 100,000 individuals.
+
+7. HIV Co-Infection in New TB Cases (%)
+  – The estimated percentage of new TB cases that are also HIV-positive.
+
+8. Estimated HIV-Positive TB Incidence (per 100,000 population)
+  – The estimated number of new HIV-positive TB cases per 100,000 people.
+
+9. Case Detection Rate (%)
+  – The percentage of TB cases (all forms) that are estimated to have been detected and reported.
+
+* * *
+
+# Data Analysis
+
+## Chart/Graph 
+```{r, message = FALSE, warning = FALSE}
+# Average prevalence of TB by country
+prev_avg <- clean_data %>%
+  # Group by country
+  group_by(`Country or territory name`) %>%
+  # calculate average prevalence
+  summarise(average_prevalence = mean(`Estimated prevalence of TB (all forms) per 100 000 population`)) %>%
+  # Order from lowest to highest TB prevalence
+  arrange(average_prevalence)
+
+# Obtain top 3 and lowest 3 countries 
+top_low_countries <- prev_avg %>%
+  filter(`Country or territory name` %in% c(head(prev_avg$`Country or territory name`, 3),
+                                            tail(prev_avg$`Country or territory name`, 3)))
+
+# Bar plot: average TB prevalence by country (top & lowest 3)
+bar_plot <- ggplot(top_low_countries, aes(x = reorder(`Country or territory name`, average_prevalence),
+                              y = average_prevalence, 
+                              fill = `Country or territory name`)) +
+  # Bar plot
+  geom_bar(stat = "identity") +
+  # Labels
+  labs(title = "TB Prevalence: Countries with the Highest and Lowest Averages",
+       x = "Country/Territory",
+       y = "Average Prevalence (Per 100,000 cases)") +
+  # Manual colors
+  scale_fill_manual(values = c(
+    "Central African Republic" = "#FEE090",
+    "Namibia" = "#FC8D59",
+    "Cambodia" = "#D73027",
+    "Barbados" = "#E0F3F8",
+    "Iceland" = "#91BFDB",
+    "Canada" = "#4575B4"
+  )) +
+  # Bar plot theme
+  theme_minimal() +
+  # Adjust x-axis labels for better view
+  theme(axis.text.x = element_text(angle = 45))
+
+# Interactive bar plot with plotly 
+interactive_bar <- ggplotly(bar_plot)
+
+# Interactive bar plot 
+interactive_bar
+```
+
+
+The interactive bar chart above highlights the three countries with the highest and lowest average tuberculosis (TB) prevalence rates.
+
+> Countries with the **highest** average TB prevalence inlude the *Central African Republic*, *Namibia*, and *Cambodia*
+
+> The top three countries with the **lowest** average TB prevalence include the *Barbados*, *Iceland*, and *Canada*
+
+```{r}
+# Overall incidence and average incidence for HIV positive cases
+avg_inc <- clean_data %>%
+    # Group by country
+  group_by(Year) %>%
+  # calculate average incidence & HIV positive incidences
+  summarise(
+    avg_incidence = mean(`Estimated incidence (all forms) per 100 000 population`),
+    avg_hiv_incidence = mean(`Estimated incidence of TB cases who are HIV-positive per 100 000 population`)) %>%
+  # Order from lowest to highest TB incidence
+  arrange(avg_incidence)
+
+# Scatterplot showing 
+scatterplot <- ggplot(avg_inc, aes(x = Year,
+                          y = avg_incidence,
+                          color = avg_hiv_incidence)) +
+  # Scatterplot
+  geom_point() +
+  # Adjust color
+  scale_color_gradient(low = "lightblue", high = "red") +
+  # Labels
+  labs(title = "Tracking TB and HIV-Positive Incidence Over Time",
+       x = "Year",
+       y = "Average Incidence (All Forms) Per 100,000 Cases",
+       color = "Average Incidence of HIV-Positive Cases") +
+  # Minimal theme
+  theme_minimal() +
+    # Adjust x-axis labels for better view
+  theme(axis.text.x = element_text(angle = 45))
+
+# Make scatterplot interactive with plotly 
+interactive_scatter <- ggplotly(scatterplot)
+
+# Interactive scatterplot 
+interactive_scatter
+```
+
+The interactive scatterplot above illustrates the average rate of tuberculosis cases in connection with HIV-positive individuals.
+
+> Tuberculosis incidence peaked in the early 2000's, indicating a **strong** correlation between Tuberculosis and HIV rates. 
+
+> Although Tuberculosis cases saw a notable decline beginning around 2005, the average number of HIV-positive TB cases remained relatively high
+
+
+## Summary Statistics
+```{r, message = FALSE, warning = FALSE}
+# Calculate favstats for Estimated prevalence of TB (all forms) per 100 000 population
+head(favstats(`Estimated prevalence of TB (all forms) per 100 000 population` ~ Year, data = clean_data), 5)
+
+# Calculate favstats for Estimated incidence of TB cases who are HIV-positive per 100 000 population
+head(favstats(`Estimated incidence of TB cases who are HIV-positive per 100 000 population` ~ Year, data = clean_data), 5)
+
+# Calculate favstats for Estimated mortality of TB cases (all forms, excluding HIV) per 100 000 population
+head(favstats(`Estimated mortality of TB cases (all forms, excluding HIV) per 100 000 population` ~ Year, data = clean_data), 5)
+```
+
+* * *
+
+# Tableau Story
+
+
+<div class='tableauPlaceholder' id='viz1745642869123' style='position: relative'><noscript><a href='#'><img alt='Mapping the Global Burden of Tuberculosis ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Ma&#47;MappingtheGlobalBurdenofTuberculosis&#47;Story1&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='MappingtheGlobalBurdenofTuberculosis&#47;Story1' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;Ma&#47;MappingtheGlobalBurdenofTuberculosis&#47;Story1&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>  
+
+
+```{js, embedcode, echo = FALSE}
+var divElement = document.getElementById('viz1745642869123');                    var vizElement = divElement.getElementsByTagName('object')[0];                    vizElement.style.width='1016px';vizElement.style.height='991px';                    var scriptElement = document.createElement('script');                    scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    vizElement.parentNode.insertBefore(scriptElement, vizElement);
+```
+
+
+The Tableau story above showcases 4 different graphs that visualize the global distribution and impact that Tuberculosis has had over the years. 
+
+1. Map: HIV Positive & Tuberculosis incidents
+
+2. Treemap: Case Detection Rates by Country
+
+3. Line Graph: Estimated Mortality Rates by Region
+
+4. Pie Chart: Tuberculosis Prevalence by Region
+
+* * *
+
+# References
+
+1. [Sample Data](https://public.tableau.com/app/learn/sample-data)
+2. [Analyze Data](https://help.tableau.com/current/pro/desktop/en-us/analyze.htm)
+3. [Mapping Concepts in Tableau](https://help.tableau.com/current/pro/desktop/en-us/maps_build.htm)
+4. [Customize How Your Map Looks](https://help.tableau.com/current/pro/desktop/en-us/maps_options.htm)
