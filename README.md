@@ -13,8 +13,8 @@ Tuberculosis continues to be one of the world’s deadliest infectious diseases,
 
 ## Data
 [Tableau Site](https://public.tableau.com/app/learn/sample-data)
-Topic: Health
-Dataset: Tuberculosis Burden by Country
+- Topic: Health
+- Dataset: Tuberculosis Burden by Country
 
 
 ## Required Packages
